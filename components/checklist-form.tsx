@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Lightbulb, Projector, AirVent } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -27,6 +28,7 @@ interface ChecklistState {
 const STORAGE_KEY = "greenhafs_user_class"
 
 export function EnergyChecklistForm() {
+  const searchParams = useSearchParams()
   const [grade, setGrade] = useState("")
   const [classNum, setClassNum] = useState("")
   const [checklist, setChecklist] = useState<ChecklistState>({
@@ -38,8 +40,30 @@ export function EnergyChecklistForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Load saved grade and class from localStorage on mount
+  // Load grade and class from URL params or localStorage on mount
   useEffect(() => {
+    const urlGrade = searchParams.get('grade')
+    const urlClass = searchParams.get('class')
+    
+    if (urlGrade && GRADES.includes(urlGrade)) {
+      setGrade(urlGrade)
+    }
+    if (urlClass && CLASSES.includes(urlClass)) {
+      setClassNum(urlClass)
+    }
+    
+    // If URL params are present, save to localStorage and return
+    if (urlGrade || urlClass) {
+      if (urlGrade && urlClass) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+          grade: urlGrade, 
+          classNum: urlClass 
+        }))
+      }
+      return
+    }
+    
+    // Otherwise, load from localStorage
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
@@ -50,7 +74,7 @@ export function EnergyChecklistForm() {
         // Ignore parse errors
       }
     }
-  }, [])
+  }, [searchParams])
 
   // Save grade and class to localStorage whenever they change
   useEffect(() => {
