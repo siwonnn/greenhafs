@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Lightbulb, Projector, AirVent } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -24,6 +24,8 @@ interface ChecklistState {
   ac: boolean
 }
 
+const STORAGE_KEY = "greenhafs_user_class"
+
 export function EnergyChecklistForm() {
   const [grade, setGrade] = useState("")
   const [classNum, setClassNum] = useState("")
@@ -35,6 +37,27 @@ export function EnergyChecklistForm() {
   const [submitted, setSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Load saved grade and class from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try {
+        const { grade: savedGrade, classNum: savedClass } = JSON.parse(saved)
+        if (savedGrade) setGrade(savedGrade)
+        if (savedClass) setClassNum(savedClass)
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }, [])
+
+  // Save grade and class to localStorage whenever they change
+  useEffect(() => {
+    if (grade && classNum) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ grade, classNum }))
+    }
+  }, [grade, classNum])
 
   const toggleItem = (key: keyof ChecklistState) => {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }))
