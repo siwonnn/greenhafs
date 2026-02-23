@@ -87,7 +87,7 @@ export async function saveChecklistRecord(data: ChecklistData) {
   }
 }
 
-export async function getDashboardData(year: number, month: number) {
+export async function getLeaderboardData(year: number, month: number) {
   try {
     // Get the start and end dates for the month in Seoul timezone
     const { startDate, endDate } = getSeoulMonthRange(year, month)

@@ -4,9 +4,9 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getDashboardData } from "@/app/actions"
-import { ClassRanking } from "@/components/dashboard/class-ranking"
-import { ClassDetails } from "@/components/dashboard/class-details"
+import { getLeaderboardData } from "@/app/actions"
+import { ClassRanking } from "@/components/leaderboard/class-ranking"
+import { ClassDetails } from "@/components/leaderboard/class-details"
 import { Header } from "@/components/header"
 
 const MONTHS = [
@@ -23,13 +23,13 @@ const MONTHS = [
   { value: "12", label: "12월" },
 ]
 
-interface DashboardProps {
+interface LeaderboardProps {
   initialData: any[]
   initialYear: number
   initialMonth: number
 }
 
-export function Dashboard({ initialData, initialYear, initialMonth }: DashboardProps) {
+export function Leaderboard({ initialData, initialYear, initialMonth }: LeaderboardProps) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(String(initialMonth))
   const [data, setData] = useState<any[]>(initialData)
@@ -42,7 +42,7 @@ export function Dashboard({ initialData, initialYear, initialMonth }: DashboardP
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      const result = await getDashboardData(year, parseInt(month))
+      const result = await getLeaderboardData(year, parseInt(month))
       if (result.success) {
         setData(result.data || [])
       }
@@ -66,8 +66,8 @@ export function Dashboard({ initialData, initialYear, initialMonth }: DashboardP
 
         {/* Title */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">에너지 절약 현황판</h1>
-          <p className="text-muted-foreground">반별 에너지 절약 기록 현황 및 점수 확인</p>
+          <h1 className="text-3xl font-bold text-foreground">에너지 절약 리더보드</h1>
+          <p className="text-muted-foreground">반별 에너지 절약 기록 및 순위</p>
         </div>
 
         {/* Month Selector */}

@@ -28,11 +28,11 @@ export default function Home() {
             {"GreenHAFS"}
           </p>
           <Link 
-            href="/dashboard" 
+            href="/leaderboard" 
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
           >
             <BarChart3 className="size-3.5" />
-            현황판
+            리더보드
           </Link>
         </div>
       </footer>
