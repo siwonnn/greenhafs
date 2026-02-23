@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Suspense } from "react"
 import { Header } from "@/components/header"
 import { EnergyChecklistForm } from "@/components/checklist-form"
 import { BarChart3 } from "lucide-react"
@@ -19,7 +20,9 @@ export default function Home() {
           </p>
         </div>
 
-        <EnergyChecklistForm />
+        <Suspense fallback={<div className="text-center text-muted-foreground">로딩 중...</div>}>
+          <EnergyChecklistForm />
+        </Suspense>
       </main>
 
       <footer className="border-t border-border py-6">
