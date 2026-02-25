@@ -6,6 +6,7 @@ import { getSeoulMonthRange } from '@/lib/date-utils'
 interface ChecklistData {
   grade: string
   classNum: string
+  classId?: string
   light_check: boolean
   projector_check: boolean
   ac_check: boolean
@@ -31,42 +32,79 @@ interface ClassScore {
   records: ClassRecord[]
 }
 
-export async function saveChecklistRecord(data: ChecklistData) {
+export async function findClassId(grade: string, classNum: string) {
   try {
-    // Find the class by grade and class number
-    const { data: classData, error: classError } = await supabase
+    const { data: classData, error } = await supabase
       .from('classes')
       .select('id')
-      .eq('grade', parseInt(data.grade))
-      .eq('class', data.classNum)
+      .eq('grade', parseInt(grade))
+      .eq('class', classNum)
       .single()
 
-    if (classError) {
+    if (error) {
       return {
         success: false,
-        error: `Database error: ${classError.message}`
+        error: `Database error: ${error.message}`
       }
     }
 
     if (!classData) {
       return {
         success: false,
-        error: `Class not found for grade ${data.grade}, class ${data.classNum}`
+        error: `Class not found for grade ${grade}, class ${classNum}`
       }
     }
 
-    // Save the record with the class_id
-    const { data: record, error: recordError } = await supabase
-      .from('records')
-      .insert([
-        {
-          class_id: classData.id,
-          light_check: data.light_check,
-          projector_check: data.projector_check,
-          ac_check: data.ac_check,
+    return {
+      success: true,
+      classId: classData.id,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }
+  }
+}
+
+export async function saveChecklistRecord(data: ChecklistData) {
+  try {
+    let classId = data.classId
+
+    if (!classId) {
+      // Find the class by grade and class number
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('grade', parseInt(data.grade))
+        .eq('class', data.classNum)
+        .single()
+
+      if (classError) {
+        return {
+          success: false,
+          error: `Database error: ${classError.message}`
         }
-      ])
-      .select()
+      }
+
+      if (!classData) {
+        return {
+          success: false,
+          error: `Class not found for grade ${data.grade}, class ${data.classNum}`
+        }
+      }
+
+      classId = classData.id
+    }
+
+    const { error: recordError } = await supabase
+      .from('records')
+      .insert({
+        class_id: classId,
+        light_check: data.light_check,
+        projector_check: data.projector_check,
+        ac_check: data.ac_check,
+      })
 
     if (recordError) {
       return {
@@ -77,7 +115,7 @@ export async function saveChecklistRecord(data: ChecklistData) {
 
     return {
       success: true,
-      data: record
+      classId,
     }
   } catch (error) {
     return {

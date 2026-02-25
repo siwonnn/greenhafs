@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { ChecklistItem } from "@/components/checklist-item"
 import { SuccessView } from "@/components/success-view"
-import { saveChecklistRecord } from "@/app/actions"
+import { findClassId, saveChecklistRecord } from "@/app/actions"
 
 const GRADES = ["1", "2", "3"]
 const CLASSES = ["1A", "1B", "2", "3", "4", "5", "6", "7", "8", "9", "10A", "10B"]
@@ -31,6 +31,7 @@ export function EnergyChecklistForm() {
   const searchParams = useSearchParams()
   const [grade, setGrade] = useState("")
   const [classNum, setClassNum] = useState("")
+  const [classId, setClassId] = useState("")
   const [checklist, setChecklist] = useState<ChecklistState>({
     light: false,
     projector: false,
@@ -67,9 +68,10 @@ export function EnergyChecklistForm() {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
-        const { grade: savedGrade, classNum: savedClass } = JSON.parse(saved)
+        const { grade: savedGrade, classNum: savedClass, classId: savedClassId } = JSON.parse(saved)
         if (savedGrade) setGrade(savedGrade)
         if (savedClass) setClassNum(savedClass)
+        if (savedClassId) setClassId(savedClassId)
       } catch (e) {
         // Ignore parse errors
       }
@@ -79,9 +81,44 @@ export function EnergyChecklistForm() {
   // Save grade and class to localStorage whenever they change
   useEffect(() => {
     if (grade && classNum) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ grade, classNum }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ grade, classNum, classId }))
     }
-  }, [grade, classNum])
+  }, [grade, classNum, classId])
+
+  useEffect(() => {
+    if (!grade || !classNum || classId) {
+      return
+    }
+
+    let isCancelled = false
+
+    const loadClassId = async () => {
+      const result = await findClassId(grade, classNum)
+      if (!isCancelled && result.success) {
+        setClassId(result.classId)
+      }
+    }
+
+    void loadClassId()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [grade, classNum, classId])
+
+  const handleGradeChange = (value: string) => {
+    if (value !== grade) {
+      setClassId("")
+    }
+    setGrade(value)
+  }
+
+  const handleClassChange = (value: string) => {
+    if (value !== classNum) {
+      setClassId("")
+    }
+    setClassNum(value)
+  }
 
   const toggleItem = (key: keyof ChecklistState) => {
     setChecklist((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -99,12 +136,16 @@ export function EnergyChecklistForm() {
       const result = await saveChecklistRecord({
         grade,
         classNum,
+        classId: classId || undefined,
         light_check: checklist.light,
         projector_check: checklist.projector,
         ac_check: checklist.ac,
       })
 
       if (result.success) {
+        if ('classId' in result && result.classId) {
+          setClassId(result.classId)
+        }
         setSubmitted(true)
       } else {
         setError("제출 중 오류가 발생했습니다. " + result.error)
@@ -134,7 +175,7 @@ export function EnergyChecklistForm() {
             <Label htmlFor="grade" className="text-xs text-muted-foreground">
               학년
             </Label>
-            <Select value={grade} onValueChange={setGrade}>
+            <Select value={grade} onValueChange={handleGradeChange}>
               <SelectTrigger id="grade" className="w-full">
                 <SelectValue placeholder="학년" />
               </SelectTrigger>
@@ -151,7 +192,7 @@ export function EnergyChecklistForm() {
             <Label htmlFor="class" className="text-xs text-muted-foreground">
               반
             </Label>
-            <Select value={classNum} onValueChange={setClassNum}>
+            <Select value={classNum} onValueChange={handleClassChange}>
               <SelectTrigger id="class" className="w-full">
                 <SelectValue placeholder="반" />
               </SelectTrigger>
