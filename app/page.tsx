@@ -28,7 +28,9 @@ export default function Home() {
       <footer className="border-t border-border py-6">
         <div className="mx-auto flex max-w-md items-center justify-between px-5">
           <p className="text-xs text-muted-foreground">
-            {"GreenHAFS"}
+            {"문의: 20150최시원"}
+            <br />
+            {"021325@hafs.hs.kr"}
           </p>
           <Link 
             href="/leaderboard" 
