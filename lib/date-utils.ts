@@ -4,24 +4,45 @@
  */
 
 const SEOUL_TIMEZONE = 'Asia/Seoul'
+const KST_OFFSET_HOURS = 9
+
+function getSeoulDateParts(date = new Date()): { year: number; month: number; day: number } {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SEOUL_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+
+  const parts = formatter.formatToParts(date)
+  const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value
+
+  return {
+    year: Number(getPart('year')),
+    month: Number(getPart('month')),
+    day: Number(getPart('day')),
+  }
+}
 
 /**
  * Get current date in Seoul timezone
  */
 export function getSeoulDate(): Date {
   const now = new Date()
-  const seoulTimeString = now.toLocaleString('en-US', { timeZone: SEOUL_TIMEZONE })
-  return new Date(seoulTimeString)
+  const localOffsetMs = now.getTimezoneOffset() * 60 * 1000
+  const utcMs = now.getTime() + localOffsetMs
+  const seoulMs = utcMs + KST_OFFSET_HOURS * 60 * 60 * 1000
+  return new Date(seoulMs)
 }
 
 /**
  * Get current year and month in Seoul timezone
  */
 export function getSeoulYearMonth(): { year: number; month: number } {
-  const seoulDate = getSeoulDate()
+  const seoulDate = getSeoulDateParts()
   return {
-    year: seoulDate.getFullYear(),
-    month: seoulDate.getMonth() + 1
+    year: seoulDate.year,
+    month: seoulDate.month
   }
 }
 
@@ -30,19 +51,14 @@ export function getSeoulYearMonth(): { year: number; month: number } {
  * Returns ISO strings
  */
 export function getSeoulMonthRange(year: number, month: number): { startDate: string; endDate: string } {
-  // Create dates at midnight Seoul time for start of month
-  const startDate = new Date(
-    new Date(year, month - 1, 1).toLocaleString('en-US', { timeZone: SEOUL_TIMEZONE })
-  )
-  
-  // Create date at end of month (23:59:59) Seoul time
-  const endDate = new Date(
-    new Date(year, month, 0, 23, 59, 59, 999).toLocaleString('en-US', { timeZone: SEOUL_TIMEZONE })
-  )
-  
+  // Convert Seoul month boundaries to UTC ISO strings.
+  // Seoul does not use DST, so fixed +09:00 offset is safe.
+  const startUtcMs = Date.UTC(year, month - 1, 1, 0, 0, 0, 0) - KST_OFFSET_HOURS * 60 * 60 * 1000
+  const nextMonthStartUtcMs = Date.UTC(year, month, 1, 0, 0, 0, 0) - KST_OFFSET_HOURS * 60 * 60 * 1000
+
   return {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString()
+    startDate: new Date(startUtcMs).toISOString(),
+    endDate: new Date(nextMonthStartUtcMs - 1).toISOString()
   }
 }
 

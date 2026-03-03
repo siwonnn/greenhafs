@@ -10,7 +10,6 @@ import { ClassDetails } from "@/components/leaderboard/class-details"
 import { Header } from "@/components/header"
 
 const MONTHS = [
-  { value: "2", label: "2월" },
   { value: "3", label: "3월" },
   { value: "4", label: "4월" },
   { value: "5", label: "5월" },
