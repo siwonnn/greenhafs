@@ -12,6 +12,8 @@ interface ChecklistData {
   ac_check: boolean
 }
 
+const SUBMISSION_COOLDOWN_MS = 60 * 60 * 1000
+
 interface ClassRecord {
   id: string
   grade: number
@@ -95,6 +97,40 @@ export async function saveChecklistRecord(data: ChecklistData) {
       }
 
       classId = classData.id
+    }
+
+    const cooldownThresholdIso = new Date(Date.now() - SUBMISSION_COOLDOWN_MS).toISOString()
+
+    const { data: recentRecord, error: recentRecordError } = await supabase
+      .from('records')
+      .select('created_at')
+      .eq('class_id', classId)
+      .gte('created_at', cooldownThresholdIso)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (recentRecordError) {
+      return {
+        success: false,
+        error: `Database error: ${recentRecordError.message}`
+      }
+    }
+
+    if (recentRecord?.created_at) {
+      const submittedAtMs = new Date(recentRecord.created_at).getTime()
+      const nextAllowedAtMs = submittedAtMs + SUBMISSION_COOLDOWN_MS
+      const remainingMs = nextAllowedAtMs - Date.now()
+
+      if (remainingMs > 0) {
+        const remainingMinutes = Math.ceil(remainingMs / (60 * 1000))
+        return {
+          success: false,
+          error: `마지막 제출 후 1시간이 지나야 다시 제출할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
+          code: 'COOLDOWN_ACTIVE',
+          cooldownRemainingMinutes: remainingMinutes,
+        }
+      }
     }
 
     const { error: recordError } = await supabase
