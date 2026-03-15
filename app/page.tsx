@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { Header } from "@/components/header"
 import { EnergyChecklistForm } from "@/components/checklist-form"
+import { Button } from "@/components/ui/button"
 import { BarChart3 } from "lucide-react"
 export default function Home() {
   return (
@@ -27,18 +28,20 @@ export default function Home() {
 
       <footer className="border-t border-border py-6">
         <div className="mx-auto flex max-w-md items-center justify-between px-5">
-          <p className="text-xs text-muted-foreground">
-            {"문의: 20150최시원"}
-            <br />
-            {"021325@hafs.hs.kr"}
-          </p>
-          <Link 
-            href="/leaderboard" 
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            <BarChart3 className="size-3.5" />
-            리더보드
-          </Link>
+          <div className="block">
+            <p className="text-xs text-muted-foreground">
+              {"기술지원: 20150최시원"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {"021325@hafs.hs.kr"}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/leaderboard" className="gap-1.5">
+              <BarChart3 className="size-3.5" />
+              리더보드
+            </Link>
+          </Button>
         </div>
       </footer>
     </div>

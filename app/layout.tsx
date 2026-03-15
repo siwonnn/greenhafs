@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
+import { PostHogProvider } from "./providers"
+import { PostHogPageView } from "./PostHogPageView"
+import { Suspense } from "react"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "GreenHAFS",
-  description: "외대부고 에너지 절약 앱",
+  description: "외대부고 에너지 절약 캠페인",
 };
 
 export default function RootLayout({
@@ -31,8 +34,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Analytics />
-        {children}
+        <PostHogProvider>
+          <Suspense fallback={null}>
+            <PostHogPageView />
+          </Suspense>
+          <Analytics />
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );
