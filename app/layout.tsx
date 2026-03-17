@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
 import { PostHogProvider } from "./providers"
 import { PostHogPageView } from "./PostHogPageView"
 import { Suspense } from "react"
+import { PWARegisterSW } from "@/components/pwa-register-sw"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,6 +20,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GreenHAFS",
   description: "외대부고 에너지 절약 캠페인",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "GreenHAFS",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#4f9b68",
 };
 
 export default function RootLayout({
@@ -35,6 +46,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <PostHogProvider>
+          <PWARegisterSW />
           <Suspense fallback={null}>
             <PostHogPageView />
           </Suspense>

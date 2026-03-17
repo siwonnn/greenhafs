@@ -4,6 +4,7 @@ import { Header } from "@/components/header"
 import { EnergyChecklistForm } from "@/components/checklist-form"
 import { Button } from "@/components/ui/button"
 import { BarChart3 } from "lucide-react"
+import { PWAInstallButton } from "@/components/pwa-install-button"
 export default function Home() {
   return (
     <div className="flex min-h-svh flex-col bg-background">
@@ -36,12 +37,15 @@ export default function Home() {
               {"021325@hafs.hs.kr"}
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/leaderboard" className="gap-1.5">
-              <BarChart3 className="size-3.5" />
-              리더보드
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <PWAInstallButton />
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/leaderboard" className="gap-1.5">
+                <BarChart3 className="size-3.5" />
+                리더보드
+              </Link>
+            </Button>
+          </div>
         </div>
       </footer>
     </div>
