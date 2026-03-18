@@ -26,6 +26,13 @@ export const metadata: Metadata = {
     title: "GreenHAFS",
     statusBarStyle: "default",
   },
+  openGraph: {
+    title: "GreenHAFS",
+    description: "외대부고 에너지 절약 캠페인",
+    url: "https://green.hafs.hs.kr",
+    siteName: "GreenHAFS",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
