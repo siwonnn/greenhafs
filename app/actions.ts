@@ -34,6 +34,16 @@ interface ClassScore {
   records: ClassRecord[]
 }
 
+export interface AdminRecord {
+  id: string
+  created_at: string
+  grade: number
+  class: string
+  light_check: boolean
+  projector_check: boolean
+  ac_check: boolean
+}
+
 export async function findClassId(grade: string, classNum: string) {
   try {
     const { data: classData, error } = await supabase
@@ -257,6 +267,80 @@ export async function getLeaderboardData(year: number, month: number) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }
+  }
+}
+
+export async function getAdminRecordsByMonth(year: number, month: number) {
+  try {
+    const { startDate, endDate } = getSeoulMonthRange(year, month)
+
+    const { data, error } = await supabase
+      .from('records')
+      .select(`
+        id,
+        created_at,
+        light_check,
+        projector_check,
+        ac_check,
+        classes(grade, class)
+      `)
+      .gte('created_at', startDate)
+      .lte('created_at', endDate)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    const records: AdminRecord[] = (data ?? [])
+      .filter((row: any) => row.classes)
+      .map((row: any) => ({
+        id: row.id,
+        created_at: row.created_at,
+        grade: row.classes.grade,
+        class: row.classes.class,
+        light_check: row.light_check,
+        projector_check: row.projector_check,
+        ac_check: row.ac_check,
+      }))
+
+    return {
+      success: true,
+      data: records,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    }
+  }
+}
+
+export async function deleteRecordById(recordId: string) {
+  try {
+    const { error } = await supabase
+      .from('records')
+      .delete()
+      .eq('id', recordId)
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     }
   }
 }
