@@ -14,6 +14,14 @@ import {
 } from "@/components/ui/select"
 import { ChecklistItem } from "@/components/checklist-item"
 import { SuccessView } from "@/components/success-view"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { findClassId, saveChecklistRecord } from "@/app/actions"
 
 const GRADES = ["1", "2", "3"]
@@ -39,6 +47,7 @@ export function EnergyChecklistForm() {
   })
   const [submitted, setSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Load grade and class from URL params or localStorage on mount
@@ -161,6 +170,11 @@ export function EnergyChecklistForm() {
     }
   }
 
+  const handleConfirmSubmit = async () => {
+    setIsConfirmOpen(false)
+    await handleSubmit()
+  }
+
   if (submitted) {
     return <SuccessView grade={grade} classNum={classNum} />
   }
@@ -252,8 +266,8 @@ export function EnergyChecklistForm() {
           </div>
         )}
         {isFormValid ? (
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={() => setIsConfirmOpen(true)}
             size="lg" 
             className="w-full"
             disabled={isLoading}
@@ -269,6 +283,29 @@ export function EnergyChecklistForm() {
           {"에너지 절약 실천 여부를 확인하여 사실대로 기록해주세요."}
         </p>
       </div>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent showCloseButton={!isLoading}>
+          <DialogHeader>
+            <DialogTitle>체크리스트 제출</DialogTitle>
+            <DialogDescription>
+              제출할까요? 제출 후에는 기록 수정 및 삭제가 불가하니 다시 한번 확인해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmOpen(false)}
+              disabled={isLoading}
+            >
+              취소
+            </Button>
+            <Button onClick={handleConfirmSubmit} disabled={isLoading}>
+              {isLoading ? "제출 중..." : "제출"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
