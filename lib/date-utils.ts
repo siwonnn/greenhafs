@@ -5,6 +5,8 @@
 
 const SEOUL_TIMEZONE = 'Asia/Seoul'
 const KST_OFFSET_HOURS = 9
+export const SEOUL_SUBMISSION_START_MINUTES = 8 * 60 + 50
+export const SEOUL_SUBMISSION_END_MINUTES = 23 * 60 + 30
 
 function getSeoulDateParts(date = new Date()): { year: number; month: number; day: number } {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -77,4 +79,32 @@ export function formatSeoulDate(dateString: string): string {
   } catch {
     return dateString
   }
+}
+
+
+// Check whether current Seoul time is within submission window.
+export function isWithinSeoulSubmissionWindow(date = new Date()): boolean {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: SEOUL_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(date)
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0')
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? '0')
+  const currentMinutes = hour * 60 + minute
+
+  return currentMinutes >= SEOUL_SUBMISSION_START_MINUTES && currentMinutes <= SEOUL_SUBMISSION_END_MINUTES
+}
+
+// Check whether current Seoul date is weekend (Saturday or Sunday).
+export function isSeoulWeekend(date = new Date()): boolean {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    timeZone: SEOUL_TIMEZONE,
+    weekday: 'short',
+  }).format(date)
+
+  return weekday === 'Sat' || weekday === 'Sun'
 }

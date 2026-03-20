@@ -157,7 +157,9 @@ export function EnergyChecklistForm() {
         }
         setSubmitted(true)
       } else {
-        if ('code' in result && result.code === 'COOLDOWN_ACTIVE' && 'cooldownRemainingMinutes' in result) {
+        if ('code' in result && result.code === 'SUBMISSION_TIME_RESTRICTED') {
+          setError(result.error)
+        } else if ('code' in result && result.code === 'COOLDOWN_ACTIVE' && 'cooldownRemainingMinutes' in result) {
           setError(`마지막 제출 후 1시간이 지나야 다시 제출할 수 있습니다.`)
         } else {
           setError("제출 중 오류가 발생했습니다. " + result.error)

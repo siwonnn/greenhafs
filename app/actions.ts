@@ -1,7 +1,7 @@
 'use server'
 
 import { supabase } from '@/lib/supabase'
-import { getSeoulMonthRange } from '@/lib/date-utils'
+import { getSeoulMonthRange, isSeoulWeekend, isWithinSeoulSubmissionWindow } from '@/lib/date-utils'
 
 interface ChecklistData {
   grade: string
@@ -81,6 +81,14 @@ export async function findClassId(grade: string, classNum: string) {
 
 export async function saveChecklistRecord(data: ChecklistData) {
   try {
+    if (isSeoulWeekend() || !isWithinSeoulSubmissionWindow()) {
+      return {
+        success: false,
+        error: '제출은 평일 08:50 ~ 23:30에만 가능합니다.',
+        code: 'SUBMISSION_TIME_RESTRICTED',
+      }
+    }
+
     let classId = data.classId
 
     if (!classId) {
