@@ -12,7 +12,7 @@ interface ChecklistData {
   ac_check: boolean
 }
 
-const SUBMISSION_COOLDOWN_MS = 60 * 60 * 1000
+const SUBMISSION_COOLDOWN_MS = 30 * 60 * 1000
 
 interface ClassRecord {
   id: string
@@ -144,7 +144,7 @@ export async function saveChecklistRecord(data: ChecklistData) {
         const remainingMinutes = Math.ceil(remainingMs / (60 * 1000))
         return {
           success: false,
-          error: `마지막 제출 후 1시간이 지나야 다시 제출할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
+          error: `마지막 제출 후 30분이 지나야 다시 제출할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
           code: 'COOLDOWN_ACTIVE',
           cooldownRemainingMinutes: remainingMinutes,
         }
