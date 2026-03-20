@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import { getLeaderboardData } from "@/app/actions"
 import { ClassRanking } from "@/components/leaderboard/class-ranking"
 import { ClassDetails } from "@/components/leaderboard/class-details"
@@ -31,6 +32,7 @@ interface LeaderboardProps {
 export function Leaderboard({ initialData, initialYear, initialMonth }: LeaderboardProps) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(String(initialMonth))
+  const [selectedGrade, setSelectedGrade] = useState<number>(1)
   const [data, setData] = useState<any[]>(initialData)
   const [selectedClass, setSelectedClass] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -51,6 +53,14 @@ export function Leaderboard({ initialData, initialYear, initialMonth }: Leaderbo
     fetchData()
   }, [year, month])
 
+  useEffect(() => {
+    if (selectedClass && selectedClass.grade !== selectedGrade) {
+      setSelectedClass(null)
+    }
+  }, [selectedClass, selectedGrade])
+
+  const filteredData = data.filter((classData) => classData.grade === selectedGrade)
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -69,8 +79,8 @@ export function Leaderboard({ initialData, initialYear, initialMonth }: Leaderbo
           <p className="text-muted-foreground">반별 에너지 절약 기록 및 순위</p>
         </div>
 
-        {/* Month Selector */}
-        <div className="flex gap-4">
+        {/* Month / Grade Selector */}
+        <div className="flex flex-col md:flex-row md:items-end">
           <div className="flex-1 max-w-xs">
             <label className="text-sm font-medium text-muted-foreground mb-2 block">월</label>
             <Select value={month} onValueChange={setMonth}>
@@ -86,21 +96,38 @@ export function Leaderboard({ initialData, initialYear, initialMonth }: Leaderbo
               </SelectContent>
             </Select>
           </div>
+
+          <div>
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">학년</label>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((grade) => (
+                <Button
+                  key={grade}
+                  type="button"
+                  size="sm"
+                  variant={selectedGrade === grade ? "default" : "outline"}
+                  onClick={() => setSelectedGrade(grade)}
+                >
+                  {grade}학년
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">데이터를 불러오는 중...</p>
           </div>
-        ) : data.length === 0 ? (
+        ) : filteredData.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">이 달의 기록이 없습니다</p>
+            <p className="text-muted-foreground">선택한 학년의 이 달 기록이 없습니다</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Rankings */}
             <div className="lg:col-span-2">
-              <ClassRanking rankings={data} selectedClass={selectedClass} onSelectClass={setSelectedClass} />
+              <ClassRanking rankings={filteredData} selectedClass={selectedClass} onSelectClass={setSelectedClass} />
             </div>
 
             {/* Details Panel */}
