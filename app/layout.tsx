@@ -5,7 +5,6 @@ import { Analytics } from "@vercel/analytics/next"
 import { PostHogProvider } from "./providers"
 import { PostHogPageView } from "./PostHogPageView"
 import { Suspense } from "react"
-import { PWARegisterSW } from "@/components/pwa-register-sw"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,7 +52,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <PostHogProvider>
-          <PWARegisterSW />
           <Suspense fallback={null}>
             <PostHogPageView />
           </Suspense>
