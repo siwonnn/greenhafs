@@ -1,5 +1,6 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { supabase } from '@/lib/supabase'
 import { getSeoulMonthRange, isSeoulWeekend, isWithinSeoulSubmissionWindow } from '@/lib/date-utils'
 
@@ -13,6 +14,37 @@ interface ChecklistData {
 }
 
 const SUBMISSION_COOLDOWN_MS = 30 * 60 * 1000
+
+type SubmissionStatus = 'SUCCESS' | 'SUBMISSION_TIME_RESTRICTED' | 'COOLDOWN_ACTIVE' | 'ERROR'
+
+interface SubmissionLogInput {
+  class_id: string | null
+  grade: number | null
+  class: string | null
+  ip: string | null
+  user_agent: string | null
+  status: SubmissionStatus
+}
+
+async function getRequestMetadata() {
+  const requestHeaders = await headers()
+  const forwardedFor = requestHeaders.get('x-forwarded-for')
+  const realIp = requestHeaders.get('x-real-ip')
+
+  return {
+    ip: forwardedFor?.split(',')[0]?.trim() || realIp || null,
+    userAgent: requestHeaders.get('user-agent') || null,
+  }
+}
+
+async function insertSubmissionLog(payload: SubmissionLogInput) {
+  // Logging should not block the main submission flow.
+  const { error } = await supabase.from('logs').insert(payload)
+
+  if (error) {
+    console.error('Failed to insert submission log:', error.message)
+  }
+}
 
 interface ClassRecord {
   id: string
@@ -80,8 +112,24 @@ export async function findClassId(grade: string, classNum: string) {
 }
 
 export async function saveChecklistRecord(data: ChecklistData) {
+  const parsedGrade = Number.parseInt(data.grade, 10)
+  const gradeForLog = Number.isNaN(parsedGrade) ? null : parsedGrade
+  const classForLog = data.classNum || null
+  let classIdForLog: string | null = data.classId ?? null
+
   try {
+    const { ip, userAgent } = await getRequestMetadata()
+
     if (isSeoulWeekend() || !isWithinSeoulSubmissionWindow()) {
+      await insertSubmissionLog({
+        class_id: classIdForLog,
+        grade: gradeForLog,
+        class: classForLog,
+        ip,
+        user_agent: userAgent,
+        status: 'SUBMISSION_TIME_RESTRICTED',
+      })
+
       return {
         success: false,
         error: '제출은 평일 08:50 ~ 23:30에만 가능합니다.',
@@ -101,6 +149,15 @@ export async function saveChecklistRecord(data: ChecklistData) {
         .single()
 
       if (classError) {
+        await insertSubmissionLog({
+          class_id: classIdForLog,
+          grade: gradeForLog,
+          class: classForLog,
+          ip,
+          user_agent: userAgent,
+          status: 'ERROR',
+        })
+
         return {
           success: false,
           error: `Database error: ${classError.message}`
@@ -108,6 +165,15 @@ export async function saveChecklistRecord(data: ChecklistData) {
       }
 
       if (!classData) {
+        await insertSubmissionLog({
+          class_id: classIdForLog,
+          grade: gradeForLog,
+          class: classForLog,
+          ip,
+          user_agent: userAgent,
+          status: 'ERROR',
+        })
+
         return {
           success: false,
           error: `Class not found for grade ${data.grade}, class ${data.classNum}`
@@ -116,6 +182,8 @@ export async function saveChecklistRecord(data: ChecklistData) {
 
       classId = classData.id
     }
+
+    classIdForLog = classId ?? null
 
     const cooldownThresholdIso = new Date(Date.now() - SUBMISSION_COOLDOWN_MS).toISOString()
 
@@ -129,6 +197,15 @@ export async function saveChecklistRecord(data: ChecklistData) {
       .maybeSingle()
 
     if (recentRecordError) {
+      await insertSubmissionLog({
+        class_id: classIdForLog,
+        grade: gradeForLog,
+        class: classForLog,
+        ip,
+        user_agent: userAgent,
+        status: 'ERROR',
+      })
+
       return {
         success: false,
         error: `Database error: ${recentRecordError.message}`
@@ -142,6 +219,16 @@ export async function saveChecklistRecord(data: ChecklistData) {
 
       if (remainingMs > 0) {
         const remainingMinutes = Math.ceil(remainingMs / (60 * 1000))
+
+        await insertSubmissionLog({
+          class_id: classIdForLog,
+          grade: gradeForLog,
+          class: classForLog,
+          ip,
+          user_agent: userAgent,
+          status: 'COOLDOWN_ACTIVE',
+        })
+
         return {
           success: false,
           error: `마지막 제출 후 30분이 지나야 다시 제출할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
@@ -161,17 +248,46 @@ export async function saveChecklistRecord(data: ChecklistData) {
       })
 
     if (recordError) {
+      await insertSubmissionLog({
+        class_id: classIdForLog,
+        grade: gradeForLog,
+        class: classForLog,
+        ip,
+        user_agent: userAgent,
+        status: 'ERROR',
+      })
+
       return {
         success: false,
         error: recordError.message
       }
     }
 
+    await insertSubmissionLog({
+      class_id: classIdForLog,
+      grade: gradeForLog,
+      class: classForLog,
+      ip,
+      user_agent: userAgent,
+      status: 'SUCCESS',
+    })
+
     return {
       success: true,
       classId,
     }
   } catch (error) {
+    const { ip, userAgent } = await getRequestMetadata()
+
+    await insertSubmissionLog({
+      class_id: classIdForLog,
+      grade: gradeForLog,
+      class: classForLog,
+      ip,
+      user_agent: userAgent,
+      status: 'ERROR',
+    })
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
