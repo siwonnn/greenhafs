@@ -29,16 +29,40 @@ interface LeaderboardProps {
   initialMonth: number
 }
 
+function getCurrentSeoulMonth() {
+  return Number(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Seoul",
+      month: "2-digit",
+    }).format(new Date())
+  )
+}
+
 export function Leaderboard({ initialData, initialYear, initialMonth }: LeaderboardProps) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(String(initialMonth))
+  const [maxVisibleMonth, setMaxVisibleMonth] = useState(initialMonth)
   const [selectedGrade, setSelectedGrade] = useState<number>(1)
   const [data, setData] = useState<any[]>(initialData)
   const [selectedClass, setSelectedClass] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
   // Filter months to only show up to current month
-  const availableMonths = MONTHS.filter(m => parseInt(m.value) <= initialMonth)
+  const availableMonths = MONTHS.filter((m) => parseInt(m.value, 10) <= maxVisibleMonth)
+
+  useEffect(() => {
+    const currentMonth = getCurrentSeoulMonth()
+
+    if (currentMonth <= initialMonth) {
+      return
+    }
+
+    setMaxVisibleMonth(currentMonth)
+    setMonth((prev) => {
+      const parsed = parseInt(prev, 10)
+      return Number.isNaN(parsed) || parsed < currentMonth ? String(currentMonth) : prev
+    })
+  }, [initialMonth])
 
   useEffect(() => {
     const fetchData = async () => {
