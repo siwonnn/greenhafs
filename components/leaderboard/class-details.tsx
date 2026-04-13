@@ -27,7 +27,7 @@ export function ClassDetails({ classData }: ClassDetailsProps) {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" sideOffset={6}>
-                    제출 1회 3점 + 항목 1개 완료당 5점 + 완료율 보너스(최대 10점)
+                    기록 1회 3점 + 항목 1개 완료당 5점 + 완료율 보너스(최대 10점)
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -35,7 +35,7 @@ export function ClassDetails({ classData }: ClassDetailsProps) {
             <span className="text-xl font-bold text-primary">{classData.score}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">제출 횟수</span>
+            <span className="text-sm text-muted-foreground">기록 횟수</span>
             <span className="text-lg font-semibold text-foreground">{classData.totalSubmissions}</span>
           </div>
           <div className="flex justify-between items-center">

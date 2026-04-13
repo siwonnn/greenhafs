@@ -153,7 +153,7 @@ export function AdminRecords({ initialYear, initialMonth, initialRecords }: Admi
       <div className="overflow-x-auto rounded-xl border bg-background">
         <div className="min-w-170">
           <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.7fr] gap-2 border-b bg-muted/40 px-4 py-3 text-xs font-semibold text-muted-foreground">
-            <span>제출 시간</span>
+            <span>기록 시간</span>
             <span>학년/반</span>
             <span>조명</span>
             <span>프로젝터</span>

@@ -132,7 +132,7 @@ export async function saveChecklistRecord(data: ChecklistData) {
 
       return {
         success: false,
-        error: '제출은 평일 08:50 ~ 23:30에만 가능합니다.',
+        error: '기록은 평일 08:50 ~ 23:30에만 가능합니다.',
         code: 'SUBMISSION_TIME_RESTRICTED',
       }
     }
@@ -231,7 +231,7 @@ export async function saveChecklistRecord(data: ChecklistData) {
 
         return {
           success: false,
-          error: `마지막 제출 후 30분이 지나야 다시 제출할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
+          error: `마지막 기록 후 30분이 지나야 다시 기록할 수 있습니다. 약 ${remainingMinutes}분 후 다시 시도해주세요.`,
           code: 'COOLDOWN_ACTIVE',
           cooldownRemainingMinutes: remainingMinutes,
         }

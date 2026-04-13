@@ -160,13 +160,13 @@ export function EnergyChecklistForm() {
         if ('code' in result && result.code === 'SUBMISSION_TIME_RESTRICTED') {
           setError(result.error)
         } else if ('code' in result && result.code === 'COOLDOWN_ACTIVE' && 'cooldownRemainingMinutes' in result) {
-          setError(`마지막 제출 후 30분이 지나야 다시 제출할 수 있습니다.`)
+          setError(`마지막 기록 후 30분이 지나야 다시 기록할 수 있습니다.`)
         } else {
-          setError("제출 중 오류가 발생했습니다. " + result.error)
+          setError("기록 중 오류가 발생했습니다. " + result.error)
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? "제출 중 오류가 발생했습니다. " + err.message : "제출 중 오류가 발생했습니다.")
+      setError(err instanceof Error ? "기록 중 오류가 발생했습니다. " + err.message : "기록 중 오류가 발생했습니다.")
     } finally {
       setIsLoading(false)
     }
@@ -274,7 +274,7 @@ export function EnergyChecklistForm() {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? "제출 중..." : "제출하기"}
+            {isLoading ? "기록 중..." : "기록하기"}
           </Button>
         ) : (
           <Button disabled size="lg" className="w-full">
@@ -289,9 +289,9 @@ export function EnergyChecklistForm() {
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <DialogContent showCloseButton={!isLoading}>
           <DialogHeader>
-            <DialogTitle>체크리스트 제출</DialogTitle>
+            <DialogTitle>체크리스트 기록</DialogTitle>
             <DialogDescription>
-              제출할까요? 제출 후에는 기록 수정 및 삭제가 불가하니 다시 한번 확인해주세요.
+              기록할까요? 기록 후에는 수정 및 삭제가 불가하니 다시 한번 확인해주세요.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -303,7 +303,7 @@ export function EnergyChecklistForm() {
               취소
             </Button>
             <Button onClick={handleConfirmSubmit} disabled={isLoading}>
-              {isLoading ? "제출 중..." : "제출"}
+              {isLoading ? "기록 중..." : "기록"}
             </Button>
           </DialogFooter>
         </DialogContent>

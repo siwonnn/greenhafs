@@ -66,7 +66,7 @@ export function ClassRanking({ rankings, selectedClass, onSelectClass }: ClassRa
                     {classData.grade}학년 {classData.class}반
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {classData.totalSubmissions}회 제출
+                    {classData.totalSubmissions}회 기록
                   </p>
                 </div>
               </div>

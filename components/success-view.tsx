@@ -15,10 +15,10 @@ export function SuccessView({ grade, classNum }: SuccessViewProps) {
       </div>
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-foreground">
-          {"제출 완료"}
+          {"기록 완료"}
         </h2>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          {grade}학년 {classNum}반 에너지 절약 체크리스트가 제출되었습니다.
+          {grade}학년 {classNum}반 에너지 절약 체크리스트가 기록되었습니다.
         </p>
       </div>
     </div>
