@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers'
 import { supabase } from '@/lib/supabase'
-import { getSeoulMonthRange, isSeoulWeekend, isWithinSeoulSubmissionWindow } from '@/lib/date-utils'
+import { getSeoulMonthRange, getSeoulDateString, getSeoulMonthKey, isSeoulWeekend, isWithinSeoulSubmissionWindow } from '@/lib/date-utils'
 
 interface ChecklistData {
   grade: string
@@ -16,6 +16,31 @@ interface ChecklistData {
 const SUBMISSION_COOLDOWN_MS = 30 * 60 * 1000
 
 type SubmissionStatus = 'SUCCESS' | 'SUBMISSION_TIME_RESTRICTED' | 'COOLDOWN_ACTIVE' | 'ERROR'
+
+export interface LogsDotPoint {
+  label: string   // e.g. "4/13" for daily, "2026 W15" for weekly
+  date: string    // "YYYY-MM-DD" (day or Monday of week)
+  count: number
+}
+
+export interface LogsClassRow {
+  grade: number
+  class: string
+  success: number
+  cooldown: number
+  timeRestricted: number
+  blockRatio: number  // 0–100
+  rank: number  // leaderboard rank within grade
+  score: number  // leaderboard score
+}
+
+export interface LogsDashboardData {
+  kpis: { success: number; cooldown: number; timeRestricted: number }
+  dots: LogsDotPoint[]
+  byClass: LogsClassRow[]
+  availableMonths: string[]  // ["2026-04", "2026-03", ...] newest first
+  isWeekly: boolean
+}
 
 interface SubmissionLogInput {
   class_id: string | null
@@ -467,4 +492,175 @@ export async function deleteRecordById(recordId: string) {
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     }
   }
+}
+
+export async function getLogsDashboardData(month?: string): Promise<LogsDashboardData> {
+  // Fetch dashboard rows (filtered or all)
+  let dataQuery = supabase
+    .from('logs')
+    .select('created_at, grade, class, status')
+    .order('created_at', { ascending: true })
+
+  if (month) {
+    const [yr, mo] = month.split('-').map(Number)
+    const { startDate, endDate } = getSeoulMonthRange(yr, mo)
+    dataQuery = dataQuery.gte('created_at', startDate).lte('created_at', endDate)
+  }
+
+  let recordsQuery = supabase
+    .from('records')
+    .select('light_check, projector_check, ac_check, classes(grade, class)')
+
+  if (month) {
+    const [yr, mo] = month.split('-').map(Number)
+    const { startDate, endDate } = getSeoulMonthRange(yr, mo)
+    recordsQuery = recordsQuery.gte('created_at', startDate).lte('created_at', endDate)
+  }
+
+  const [{ data: logs, error: logsError }, { data: allTimestamps, error: tsError }, { data: records }] = await Promise.all([
+    dataQuery,
+    supabase.from('logs').select('created_at'),
+    recordsQuery,
+  ])
+
+  if (logsError || !logs) throw new Error(logsError?.message ?? 'Failed to fetch logs')
+  if (tsError) throw new Error(tsError.message)
+
+  // Available months (derived from all rows)
+  const monthSet = new Set<string>()
+  for (const row of allTimestamps ?? []) {
+    monthSet.add(getSeoulMonthKey(row.created_at))
+  }
+  const availableMonths = Array.from(monthSet).sort().reverse()
+
+  // KPIs
+  const kpis = { success: 0, cooldown: 0, timeRestricted: 0 }
+  for (const log of logs) {
+    if (log.status === 'SUCCESS') kpis.success++
+    else if (log.status === 'COOLDOWN_ACTIVE') kpis.cooldown++
+    else if (log.status === 'SUBMISSION_TIME_RESTRICTED') kpis.timeRestricted++
+  }
+
+  // Dot chart data
+  const isWeekly = !month
+  const dotMap = new Map<string, number>()
+
+  for (const log of logs) {
+    if (log.status !== 'SUCCESS') continue
+    const dayStr = getSeoulDateString(log.created_at)
+
+    let key: string
+    if (isWeekly) {
+      // Find Monday of this day's week
+      const d = new Date(dayStr + 'T00:00:00Z')
+      const dow = d.getUTCDay()
+      const toMonday = dow === 0 ? 6 : dow - 1
+      d.setUTCDate(d.getUTCDate() - toMonday)
+      key = d.toISOString().slice(0, 10)
+    } else {
+      key = dayStr
+    }
+    dotMap.set(key, (dotMap.get(key) ?? 0) + 1)
+  }
+
+  let dots: LogsDotPoint[]
+
+  if (month) {
+    // Fill every calendar day of the month, including zeros
+    const [yr, mo] = month.split('-').map(Number)
+    const daysInMonth = new Date(yr, mo, 0).getDate()
+    dots = []
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${yr}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      dots.push({ label: `${mo}/${d}`, date: dateStr, count: dotMap.get(dateStr) ?? 0 })
+    }
+  } else {
+    // Weekly: only show weeks that have data, sorted ascending
+    dots = Array.from(dotMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mondayStr, count]) => {
+        const d = new Date(mondayStr + 'T00:00:00Z')
+        const dayNum = d.getUTCDay() || 7
+        const thursday = new Date(d)
+        thursday.setUTCDate(d.getUTCDate() + 4 - dayNum)
+        const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1))
+        const weekNum = Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+        return { label: `${thursday.getUTCFullYear()} W${weekNum}`, date: mondayStr, count }
+      })
+  }
+
+  // Per-class aggregation from logs
+  const classMap = new Map<string, Omit<LogsClassRow, 'rank' | 'score'>>()
+  for (const log of logs) {
+    if (log.status === 'ERROR') continue
+    const key = `${log.grade}-${log.class}`
+    if (!classMap.has(key)) {
+      classMap.set(key, { grade: Number(log.grade), class: log.class, success: 0, cooldown: 0, timeRestricted: 0, blockRatio: 0 })
+    }
+    const row = classMap.get(key)!
+    if (log.status === 'SUCCESS') row.success++
+    else if (log.status === 'COOLDOWN_ACTIVE') row.cooldown++
+    else if (log.status === 'SUBMISSION_TIME_RESTRICTED') row.timeRestricted++
+  }
+
+  // Compute leaderboard scores from records
+  const scoreMap = new Map<string, { totalSubmissions: number; completedChecks: number; totalChecks: number }>()
+  for (const record of records ?? []) {
+    const clsRaw = record.classes
+    const cls = clsRaw && !Array.isArray(clsRaw) ? clsRaw as { grade: number; class: string } : null
+    if (!cls) continue
+    const key = `${cls.grade}-${cls.class}`
+    if (!scoreMap.has(key)) scoreMap.set(key, { totalSubmissions: 0, completedChecks: 0, totalChecks: 0 })
+    const s = scoreMap.get(key)!
+    s.totalSubmissions++
+    s.totalChecks += 3
+    if (record.light_check) s.completedChecks++
+    if (record.projector_check) s.completedChecks++
+    if (record.ac_check) s.completedChecks++
+  }
+
+  const getScore = (key: string) => {
+    const s = scoreMap.get(key)
+    if (!s || s.totalSubmissions === 0) return 0
+    const completionRate = Math.round((s.completedChecks / s.totalChecks) * 100)
+    return s.totalSubmissions * 3 + s.completedChecks * 5 + Math.floor((completionRate / 100) * 10)
+  }
+
+  // Compute per-grade ranks into a map, then attach immutably
+  const scoreByKey = new Map<string, number>()
+  for (const row of classMap.values()) {
+    const key = `${row.grade}-${row.class}`
+    scoreByKey.set(key, getScore(key))
+  }
+
+  const rankMap = new Map<string, number>()
+  const gradeGroups = new Map<number, string[]>()
+  for (const [key, row] of classMap) {
+    const g = Number(row.grade)
+    if (!gradeGroups.has(g)) gradeGroups.set(g, [])
+    gradeGroups.get(g)!.push(key)
+  }
+  for (const keys of gradeGroups.values()) {
+    keys.sort((a, b) => (scoreByKey.get(b) ?? 0) - (scoreByKey.get(a) ?? 0))
+    keys.forEach((key, idx) => {
+      let rank = 1
+      for (let i = 0; i < idx; i++) {
+        if ((scoreByKey.get(keys[i]) ?? 0) > (scoreByKey.get(key) ?? 0)) rank++
+      }
+      rankMap.set(key, rank)
+    })
+  }
+
+  const byClass: LogsClassRow[] = Array.from(classMap.values()).map(row => {
+    const total = row.success + row.cooldown + row.timeRestricted
+    const key = `${row.grade}-${row.class}`
+    return {
+      ...row,
+      blockRatio: total > 0 ? ((row.cooldown + row.timeRestricted) / total) * 100 : 0,
+      score: scoreByKey.get(key) ?? 0,
+      rank: rankMap.get(key) ?? 0,
+    }
+  }).sort((a, b) => a.grade - b.grade || a.class.localeCompare(b.class))
+
+  return { kpis, dots, byClass, availableMonths, isWeekly }
 }

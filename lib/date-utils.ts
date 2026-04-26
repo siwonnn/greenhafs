@@ -108,3 +108,21 @@ export function isSeoulWeekend(date = new Date()): boolean {
 
   return weekday === 'Sat' || weekday === 'Sun'
 }
+
+/**
+ * Convert an ISO string to "YYYY-MM-DD" in Seoul timezone.
+ * Assumes isoString is a valid ISO 8601 string.
+ */
+export function getSeoulDateString(isoString: string): string {
+  const { year, month, day } = getSeoulDateParts(new Date(isoString))
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/**
+ * Convert an ISO string to "YYYY-MM" in Seoul timezone.
+ * Assumes isoString is a valid ISO 8601 string.
+ */
+export function getSeoulMonthKey(isoString: string): string {
+  const { year, month } = getSeoulDateParts(new Date(isoString))
+  return `${year}-${String(month).padStart(2, '0')}`
+}

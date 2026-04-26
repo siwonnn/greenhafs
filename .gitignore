@@ -44,3 +44,13 @@ next-env.d.ts
 .env.sentry-build-plugin
 
 .vercel
+
+# git worktrees
+.worktrees/
+.superpowers/
+
+# local claude code config
+.claude/
+
+# design docs
+docs/
